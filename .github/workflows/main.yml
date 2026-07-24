@@ -1,0 +1,49 @@
+# Windows build workflow for windows-2022
+name: Windows Build (windows-2022)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build on Windows 2022
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+          C:\vcpkg\bootstrap-vcpkg.bat
+        shell: powershell
+
+      - name: Install dependencies (qt5-base) via vcpkg
+        run: |
+          C:\vcpkg\vcpkg.exe install qt5-base:x64-windows
+        shell: powershell
+
+      - name: Configure with CMake
+        run: |
+          cmake -S . -B build -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
+        shell: powershell
+
+      - name: Build xb2at
+        run: |
+          cmake --build build --config Release --target xb2at
+        shell: powershell
+
+      - name: Run unit tests (if any)
+        if: always()
+        run: |
+          # If you have tests configured add them here, e.g. ctest -C Release --test-dir build
+          echo "No tests configured by default"
+        shell: powershell
+
+      - name: Upload built executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: xb2at-executables
+          path: |
+            build\**\*.exe
